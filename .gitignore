@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+.output/
+.vinxi/
+.tanstack/
+dist/
+
+# Local database
+lending.db
+lending.db-shm
+lending.db-wal
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.DS_Store
+*.log
+
+# AI Blueprint local workflow files
+.agents/
+.claude/
+blueprint/
+CLAUDE.md
