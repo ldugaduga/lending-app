@@ -3,6 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from '@tanstack/react-form'
 import { useReactTable, getCoreRowModel, flexRender, createColumnHelper } from '@tanstack/react-table'
 import { listClients, createClient, updateClientStatus } from '@/server/clients'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 
 export const Route = createFileRoute('/clients')({
   component: ClientsPage,
@@ -49,7 +53,9 @@ function ClientsPage() {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() =>
             statusMutation.mutate({
               data: {
@@ -60,7 +66,7 @@ function ClientsPage() {
           }
         >
           {row.original.status === 'active' ? 'Suspend' : 'Activate'}
-        </button>
+        </Button>
       ),
     }),
   ]
@@ -73,7 +79,7 @@ function ClientsPage() {
 
   return (
     <div>
-      <h1>Clients</h1>
+      <h1 className="mb-6 text-2xl font-semibold">Clients</h1>
 
       <form
         onSubmit={(e) => {
@@ -81,55 +87,104 @@ function ClientsPage() {
           e.stopPropagation()
           form.handleSubmit()
         }}
-        style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}
+        className="mb-6 flex flex-wrap items-end gap-4"
       >
         <form.Field name="name">
           {(field) => (
-            <input placeholder="Name" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="client-name">Name</Label>
+              <Input
+                id="client-name"
+                placeholder="Name"
+                required
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+              />
+            </div>
           )}
         </form.Field>
         <form.Field name="phone">
           {(field) => (
-            <input placeholder="Phone" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="client-phone">Phone</Label>
+              <Input
+                id="client-phone"
+                placeholder="Phone"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+              />
+            </div>
           )}
         </form.Field>
         <form.Field name="email">
           {(field) => (
-            <input placeholder="Email (optional)" type="email" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="client-email">Email</Label>
+              <Input
+                id="client-email"
+                placeholder="Email (optional)"
+                type="email"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+              />
+            </div>
           )}
         </form.Field>
         <form.Field name="address">
           {(field) => (
-            <input placeholder="Address (optional)" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="client-address">Address</Label>
+              <Input
+                id="client-address"
+                placeholder="Address (optional)"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+              />
+            </div>
           )}
         </form.Field>
-        <button type="submit">Add Client</button>
+        <Button type="submit" disabled={createMutation.isPending}>
+          {createMutation.isPending ? 'Adding...' : 'Add Client'}
+        </Button>
       </form>
 
-      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-        <thead>
+      {createMutation.isError && (
+        <p className="mb-4 text-sm text-destructive">{createMutation.error.message}</p>
+      )}
+      {statusMutation.isError && (
+        <p className="mb-4 text-sm text-destructive">{statusMutation.error.message}</p>
+      )}
+
+      <Table>
+        <TableHeader>
           {table.getHeaderGroups().map((hg) => (
-            <tr key={hg.id}>
+            <TableRow key={hg.id}>
               {hg.headers.map((header) => (
-                <th key={header.id} style={{ textAlign: 'left', borderBottom: '1px solid #ccc', padding: '0.5rem' }}>
+                <TableHead key={header.id}>
                   {flexRender(header.column.columnDef.header, header.getContext())}
-                </th>
+                </TableHead>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="text-center text-muted-foreground">
+                No clients yet.
+              </TableCell>
+            </TableRow>
+          ) : (
+            table.getRowModel().rows.map((row) => (
+              <TableRow key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                ))}
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   )
 }
