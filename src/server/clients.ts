@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { db } from '@/db'
-import { clients } from '@/db/schema'
+import { clients, loans } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 
 const createClientSchema = z.object({
@@ -31,4 +31,23 @@ export const updateClientStatus = createServerFn({ method: 'POST' })
       .where(eq(clients.id, data.id))
       .returning()
     return client
+  })
+
+export const updateClient = createServerFn({ method: 'POST' })
+  .validator(createClientSchema.extend({ id: z.number() }))
+  .handler(async ({ data }) => {
+    const { id, ...rest } = data
+    const [client] = await db.update(clients).set(rest).where(eq(clients.id, id)).returning()
+    return client
+  })
+
+export const deleteClient = createServerFn({ method: 'POST' })
+  .validator(z.object({ id: z.number() }))
+  .handler(async ({ data }) => {
+    const existingLoans = await db.select({ id: loans.id }).from(loans).where(eq(loans.clientId, data.id))
+    if (existingLoans.length > 0) {
+      throw new Error('Cannot delete a client with existing loans')
+    }
+    await db.delete(clients).where(eq(clients.id, data.id))
+    return { id: data.id }
   })

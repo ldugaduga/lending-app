@@ -2,7 +2,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from '@tanstack/react-form'
 import { useReactTable, getCoreRowModel, flexRender, createColumnHelper } from '@tanstack/react-table'
-import { listClients, createClient, updateClientStatus } from '@/server/clients'
+import { useState } from 'react'
+import { listClients, createClient, updateClient, updateClientStatus, deleteClient } from '@/server/clients'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,6 +20,7 @@ const columnHelper = createColumnHelper<Client>()
 function ClientsPage() {
   const initialClients = Route.useLoaderData()
   const queryClient = useQueryClient()
+  const [editingClientId, setEditingClientId] = useState<number | null>(null)
 
   const { data: clients } = useQuery({
     queryKey: ['clients'],
@@ -36,13 +38,41 @@ function ClientsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteClient,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: updateClient,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+  })
+
   const form = useForm({
     defaultValues: { name: '', email: '', phone: '', address: '' },
     onSubmit: async ({ value }) => {
-      await createMutation.mutateAsync({ data: value })
+      if (editingClientId !== null) {
+        await updateMutation.mutateAsync({ data: { id: editingClientId, ...value } })
+        setEditingClientId(null)
+      } else {
+        await createMutation.mutateAsync({ data: value })
+      }
       form.reset()
     },
   })
+
+  function startEditing(client: Client) {
+    setEditingClientId(client.id)
+    form.setFieldValue('name', client.name)
+    form.setFieldValue('email', client.email ?? '')
+    form.setFieldValue('phone', client.phone ?? '')
+    form.setFieldValue('address', client.address ?? '')
+  }
+
+  function cancelEditing() {
+    setEditingClientId(null)
+    form.reset()
+  }
 
   const columns = [
     columnHelper.accessor('name', { header: 'Name' }),
@@ -53,20 +83,36 @@ function ClientsPage() {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            statusMutation.mutate({
-              data: {
-                id: row.original.id,
-                status: row.original.status === 'active' ? 'suspended' : 'active',
-              },
-            })
-          }
-        >
-          {row.original.status === 'active' ? 'Suspend' : 'Activate'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              statusMutation.mutate({
+                data: {
+                  id: row.original.id,
+                  status: row.original.status === 'active' ? 'suspended' : 'active',
+                },
+              })
+            }
+          >
+            {row.original.status === 'active' ? 'Suspend' : 'Activate'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => startEditing(row.original)}>
+            Edit
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (window.confirm(`Delete client "${row.original.name}"? This cannot be undone.`)) {
+                deleteMutation.mutate({ data: { id: row.original.id } })
+              }
+            }}
+          >
+            Delete
+          </Button>
+        </div>
       ),
     }),
   ]
@@ -143,10 +189,21 @@ function ClientsPage() {
             </div>
           )}
         </form.Field>
-        <div className="sm:col-span-2">
-          <Button type="submit" disabled={createMutation.isPending}>
-            {createMutation.isPending ? 'Adding...' : 'Add Client'}
-          </Button>
+        <div className="flex items-center gap-3 sm:col-span-2">
+          {editingClientId !== null ? (
+            <>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+              <Button type="button" variant="outline" onClick={cancelEditing}>
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? 'Adding...' : 'Add Client'}
+            </Button>
+          )}
         </div>
       </form>
 
@@ -155,6 +212,12 @@ function ClientsPage() {
       )}
       {statusMutation.isError && (
         <p className="mb-4 text-sm text-destructive">{statusMutation.error.message}</p>
+      )}
+      {updateMutation.isError && (
+        <p className="mb-4 text-sm text-destructive">{updateMutation.error.message}</p>
+      )}
+      {deleteMutation.isError && (
+        <p className="mb-4 text-sm text-destructive">{deleteMutation.error.message}</p>
       )}
 
       <Table>

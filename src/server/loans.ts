@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { db } from '@/db'
-import { loans, installments } from '@/db/schema'
+import { loans, installments, payments } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { generateAmortizationSchedule, getLoanSummary } from '@/lib/loan-engine'
 
@@ -88,4 +88,58 @@ export const createLoan = createServerFn({ method: 'POST' })
     )
 
     return loan
+  })
+
+export const updateLoan = createServerFn({ method: 'POST' })
+  .validator(createLoanSchema.omit({ clientId: true }).extend({ id: z.number() }))
+  .handler(async ({ data }) => {
+    const existingPayments = await db.select({ id: payments.id }).from(payments).where(eq(payments.loanId, data.id))
+    if (existingPayments.length > 0) {
+      throw new Error('Cannot edit a loan with recorded payments')
+    }
+
+    const schedule = generateAmortizationSchedule(
+      data.principal, data.interestRate, data.interestType, data.termMonths,
+      data.startDate, data.repaymentFrequency,
+    )
+
+    db.transaction((tx) => {
+      tx.delete(installments).where(eq(installments.loanId, data.id)).run()
+      tx.update(loans)
+        .set({
+          principal: data.principal,
+          interestRate: data.interestRate,
+          interestType: data.interestType,
+          termMonths: data.termMonths,
+          repaymentFrequency: data.repaymentFrequency,
+          startDate: new Date(data.startDate),
+        })
+        .where(eq(loans.id, data.id))
+        .run()
+      tx.insert(installments)
+        .values(
+          schedule.map((row) => ({
+            loanId: data.id,
+            installmentNumber: row.installmentNumber,
+            dueDate: new Date(row.dueDate),
+            principalPortion: row.principalPortion,
+            interestPortion: row.interestPortion,
+            totalDue: row.totalDue,
+          })),
+        )
+        .run()
+    })
+
+    return { id: data.id }
+  })
+
+export const deleteLoan = createServerFn({ method: 'POST' })
+  .validator(z.object({ id: z.number() }))
+  .handler(async ({ data }) => {
+    db.transaction((tx) => {
+      tx.delete(payments).where(eq(payments.loanId, data.id)).run()
+      tx.delete(installments).where(eq(installments.loanId, data.id)).run()
+      tx.delete(loans).where(eq(loans.id, data.id)).run()
+    })
+    return { id: data.id }
   })

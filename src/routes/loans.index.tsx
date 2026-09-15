@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from '@tanstack/react-form'
 import { useReactTable, getCoreRowModel, flexRender, createColumnHelper } from '@tanstack/react-table'
-import { listLoans, createLoan, previewLoan } from '@/server/loans'
+import { listLoans, createLoan, previewLoan, deleteLoan } from '@/server/loans'
 import { listClients } from '@/server/clients'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,6 +47,11 @@ function LoansPage() {
     },
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteLoan,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['loans'] }),
+  })
+
   const form = useForm({
     defaultValues: {
       clientId: activeClients[0]?.id ?? 0,
@@ -64,8 +69,12 @@ function LoansPage() {
   })
 
   async function handlePreview() {
+    if (preview) {
+      setPreview(null)
+      setPreviewError(null)
+      return
+    }
     const values = form.state.values
-    setPreview(null)
     setPreviewError(null)
     setIsPreviewPending(true)
     try {
@@ -86,14 +95,27 @@ function LoansPage() {
     columnHelper.accessor('termMonths', { header: 'Term (mo)' }),
     columnHelper.accessor('status', { header: 'Status' }),
     columnHelper.display({
-      id: 'view',
+      id: 'actions',
       header: '',
       cell: ({ row }) => (
-        <Button asChild variant="link" size="sm">
-          <Link to="/loans/$loanId" params={{ loanId: String(row.original.id) }}>
-            View
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="link" size="sm">
+            <Link to="/loans/$loanId" params={{ loanId: String(row.original.id) }}>
+              View
+            </Link>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (window.confirm(`Delete loan #${row.original.id}? This cannot be undone.`)) {
+                deleteMutation.mutate({ data: { id: row.original.id } })
+              }
+            }}
+          >
+            Delete
+          </Button>
+        </div>
       ),
     }),
   ]
@@ -229,7 +251,7 @@ function LoansPage() {
         </form.Field>
         <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
           <Button type="button" variant="outline" onClick={handlePreview} disabled={isPreviewPending}>
-            {isPreviewPending ? 'Previewing...' : 'Preview'}
+            {isPreviewPending ? 'Previewing...' : preview ? 'Hide Preview' : 'Preview'}
           </Button>
           <Button type="submit" disabled={activeClients.length === 0}>
             Create Loan
@@ -243,6 +265,9 @@ function LoansPage() {
       {previewError && <p className="mb-4 text-sm text-destructive">{previewError}</p>}
       {createMutation.isError && (
         <p className="mb-4 text-sm text-destructive">{createMutation.error.message}</p>
+      )}
+      {deleteMutation.isError && (
+        <p className="mb-4 text-sm text-destructive">{deleteMutation.error.message}</p>
       )}
 
       {preview && (
