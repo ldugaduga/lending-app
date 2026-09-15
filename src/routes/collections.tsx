@@ -35,9 +35,9 @@ function CollectionsPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-semibold">Collections</h1>
-      <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {grouped.map(({ bucket, rows }) => (
-          <Card key={bucket}>
+          <Card key={bucket} className={cn(rows.length > 0 && 'col-span-full')}>
             <CardHeader>
               <CardTitle className={cn(bucket === 'overdue' && 'text-destructive')}>
                 {BUCKET_LABELS[bucket]} ({rows.length})
