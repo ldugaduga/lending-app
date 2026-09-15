@@ -1,7 +1,11 @@
 import { createRootRouteWithContext, Outlet, Link, HeadContent, Scripts } from '@tanstack/react-router'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
+import appCss from '../styles/app.css?url'
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  head: () => ({
+    links: [{ rel: 'stylesheet', href: appCss }],
+  }),
   component: RootComponent,
 })
 
@@ -17,12 +21,27 @@ function RootComponent() {
       </head>
       <body>
         <QueryClientProvider client={queryClient}>
-          <nav style={{ display: 'flex', gap: '1rem', padding: '1rem', borderBottom: '1px solid #ddd' }}>
-            <Link to="/clients">Clients</Link>
-            <Link to="/loans">Loans</Link>
-            <Link to="/collections">Collections</Link>
+          <nav className="flex gap-6 border-b border-border px-6 py-4">
+            <Link
+              to="/clients"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-foreground data-[status=active]:font-semibold"
+            >
+              Clients
+            </Link>
+            <Link
+              to="/loans"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-foreground data-[status=active]:font-semibold"
+            >
+              Loans
+            </Link>
+            <Link
+              to="/collections"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-foreground data-[status=active]:font-semibold"
+            >
+              Collections
+            </Link>
           </nav>
-          <main style={{ padding: '1.5rem' }}>
+          <main className="p-6">
             <Outlet />
           </main>
         </QueryClientProvider>
