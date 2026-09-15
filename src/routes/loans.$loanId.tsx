@@ -94,7 +94,14 @@ function LoanDetailPage() {
         </h1>
         <div className="flex gap-2">
           {canEdit && (
-            <Button variant="outline" size="sm" onClick={() => setIsEditing((v) => !v)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsEditing((v) => !v)
+                editForm.reset()
+              }}
+            >
               {isEditing ? 'Cancel Edit' : 'Edit Loan'}
             </Button>
           )}
@@ -224,7 +231,14 @@ function LoanDetailPage() {
                 <Button type="submit" disabled={updateMutation.isPending}>
                   {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditing(false)
+                    editForm.reset()
+                  }}
+                >
                   Cancel
                 </Button>
               </div>

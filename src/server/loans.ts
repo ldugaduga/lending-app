@@ -93,6 +93,11 @@ export const createLoan = createServerFn({ method: 'POST' })
 export const updateLoan = createServerFn({ method: 'POST' })
   .validator(createLoanSchema.omit({ clientId: true }).extend({ id: z.number() }))
   .handler(async ({ data }) => {
+    const existingLoan = await db.select({ id: loans.id }).from(loans).where(eq(loans.id, data.id))
+    if (existingLoan.length === 0) {
+      throw new Error('Loan not found')
+    }
+
     const existingPayments = await db.select({ id: payments.id }).from(payments).where(eq(payments.loanId, data.id))
     if (existingPayments.length > 0) {
       throw new Error('Cannot edit a loan with recorded payments')
