@@ -17,3 +17,9 @@ declare module '@tanstack/react-router' {
     router: ReturnType<typeof createRouter>
   }
 }
+
+// The server request handler resolves the router through the '#tanstack-router-entry'
+// virtual module, which requires a `getRouter` export (see @tanstack/start-client-core's
+// RouterEntry interface) - `createRouter` alone isn't enough server-side. client.tsx still
+// imports `createRouter` by name, so both exports stay.
+export { createRouter as getRouter }
