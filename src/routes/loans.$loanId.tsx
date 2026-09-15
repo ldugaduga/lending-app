@@ -2,15 +2,18 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from '@tanstack/react-form'
+import { CalendarIcon } from 'lucide-react'
 import { getLoan, deleteLoan, updateLoan } from '@/server/loans'
 import { recordPayment } from '@/server/payments'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, toDateInputValue } from '@/lib/utils'
 
 export const Route = createFileRoute('/loans/$loanId')({
   component: LoanDetailPage,
@@ -218,12 +221,26 @@ function LoanDetailPage() {
                 {(field) => (
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="edit-loan-start-date">Start date</Label>
-                    <Input
-                      id="edit-loan-start-date"
-                      type="date"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="edit-loan-start-date"
+                          type="button"
+                          variant="outline"
+                          className="justify-start font-normal"
+                        >
+                          <CalendarIcon />
+                          {field.state.value || 'Select a date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.state.value ? new Date(field.state.value + 'T00:00:00') : undefined}
+                          onSelect={(date) => date && field.handleChange(toDateInputValue(date))}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 )}
               </editForm.Field>

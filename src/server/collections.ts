@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { db } from '@/db'
 import { installments } from '@/db/schema'
 import { ne } from 'drizzle-orm'
+import { todayInManila } from '@/lib/utils'
 
 /**
  * Returns all outstanding installments (not fully paid) across every loan,
@@ -17,12 +18,11 @@ export const listOutstandingInstallments = createServerFn({ method: 'GET' }).han
     orderBy: (i, { asc }) => [asc(i.dueDate)],
   })
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const today = new Date(todayInManila())
 
   return rows.map((row) => {
     const due = new Date(row.dueDate)
-    due.setHours(0, 0, 0, 0)
+    due.setUTCHours(0, 0, 0, 0)
     const daysDiff = Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
     let bucket: 'overdue' | 'today' | 'this_week' | 'upcoming'
     if (daysDiff < 0) bucket = 'overdue'

@@ -153,13 +153,13 @@ export interface ScheduleRow {
 function advanceDueDate(start: Date, index: number, frequency: RepaymentFrequency): Date {
   const d = new Date(start)
   if (frequency === 'daily') {
-    d.setDate(d.getDate() + index)
+    d.setUTCDate(d.getUTCDate() + index)
   } else if (frequency === 'weekly') {
-    d.setDate(d.getDate() + 7 * index)
+    d.setUTCDate(d.getUTCDate() + 7 * index)
   } else if (frequency === 'biweekly') {
-    d.setDate(d.getDate() + 14 * index)
+    d.setUTCDate(d.getUTCDate() + 14 * index)
   } else {
-    d.setMonth(d.getMonth() + index)
+    d.setUTCMonth(d.getUTCMonth() + index)
   }
   return d
 }
@@ -191,7 +191,7 @@ export function generateAmortizationSchedule(
     throw new Error('Interest type must be fixed or declining.')
   }
 
-  const startDate = new Date(startDateStr + 'T00:00:00')
+  const startDate = new Date(startDateStr + 'T00:00:00Z')
   if (isNaN(startDate.getTime())) {
     throw new Error('Start date must use YYYY-MM-DD format.')
   }
@@ -226,12 +226,12 @@ function effectiveAnnualRate(disbursedAmount: number, schedule: ScheduleRow[], s
   if (disbursedAmount <= 0 || schedule.length === 0) {
     throw new Error('Net disbursed amount must be greater than zero.')
   }
-  const startDate = new Date(startDateStr + 'T00:00:00')
+  const startDate = new Date(startDateStr + 'T00:00:00Z')
 
   const npv = (rate: number): number => {
     let value = disbursedAmount
     for (const row of schedule) {
-      const due = new Date(row.dueDate + 'T00:00:00')
+      const due = new Date(row.dueDate + 'T00:00:00Z')
       const years = Math.max(0, (due.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) / 365.0
       value -= row.totalDue / Math.pow(1 + rate, years)
     }

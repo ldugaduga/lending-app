@@ -3,15 +3,18 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from '@tanstack/react-form'
 import { useReactTable, getCoreRowModel, flexRender, createColumnHelper } from '@tanstack/react-table'
+import { CalendarIcon } from 'lucide-react'
 import { listLoans, createLoan, previewLoan, deleteLoan } from '@/server/loans'
 import { listClients } from '@/server/clients'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, todayInManila, toDateInputValue } from '@/lib/utils'
 
 export const Route = createFileRoute('/loans/')({
   component: LoansPage,
@@ -60,7 +63,7 @@ function LoansPage() {
       interestType: 'declining' as 'fixed' | 'declining',
       termMonths: 6,
       repaymentFrequency: 'monthly' as 'daily' | 'weekly' | 'biweekly' | 'monthly',
-      startDate: new Date().toISOString().slice(0, 10),
+      startDate: todayInManila(),
     },
     onSubmit: async ({ value }) => {
       await createMutation.mutateAsync({ data: value })
@@ -240,12 +243,21 @@ function LoansPage() {
           {(field) => (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="loan-start-date">Start date</Label>
-              <Input
-                id="loan-start-date"
-                type="date"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button id="loan-start-date" type="button" variant="outline" className="justify-start font-normal">
+                    <CalendarIcon />
+                    {field.state.value || 'Select a date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.state.value ? new Date(field.state.value + 'T00:00:00') : undefined}
+                    onSelect={(date) => date && field.handleChange(toDateInputValue(date))}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           )}
         </form.Field>
