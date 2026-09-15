@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { formatCurrency } from '@/lib/utils'
 
 export const Route = createFileRoute('/loans/')({
   component: LoansPage,
@@ -79,7 +80,7 @@ function LoansPage() {
 
   const columns = [
     columnHelper.accessor((row) => row.client?.name, { id: 'client', header: 'Client' }),
-    columnHelper.accessor('principal', { header: 'Principal', cell: (c) => `$${c.getValue().toFixed(2)}` }),
+    columnHelper.accessor('principal', { header: 'Principal', cell: (c) => formatCurrency(c.getValue()) }),
     columnHelper.accessor('interestRate', { header: 'Rate', cell: (c) => `${c.getValue()}%` }),
     columnHelper.accessor('interestType', { header: 'Type' }),
     columnHelper.accessor('termMonths', { header: 'Term (mo)' }),
@@ -247,8 +248,8 @@ function LoansPage() {
           <CardHeader>
             <CardTitle>Preview</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Total interest: ${preview.summary.totalInterest.toFixed(2)} · Total repayment: $
-              {preview.summary.totalRepayment.toFixed(2)} · APR: {preview.summary.apr}% · Installments:{' '}
+              Total interest: {formatCurrency(preview.summary.totalInterest)} · Total repayment:{' '}
+              {formatCurrency(preview.summary.totalRepayment)} · APR: {preview.summary.apr}% · Installments:{' '}
               {preview.summary.installmentCount}
             </p>
           </CardHeader>
@@ -269,10 +270,10 @@ function LoansPage() {
                   <TableRow key={row.installmentNumber}>
                     <TableCell>{row.installmentNumber}</TableCell>
                     <TableCell>{row.dueDate}</TableCell>
-                    <TableCell>${row.principalPortion.toFixed(2)}</TableCell>
-                    <TableCell>${row.interestPortion.toFixed(2)}</TableCell>
-                    <TableCell>${row.totalDue.toFixed(2)}</TableCell>
-                    <TableCell>${row.balanceRemaining.toFixed(2)}</TableCell>
+                    <TableCell>{formatCurrency(row.principalPortion)}</TableCell>
+                    <TableCell>{formatCurrency(row.interestPortion)}</TableCell>
+                    <TableCell>{formatCurrency(row.totalDue)}</TableCell>
+                    <TableCell>{formatCurrency(row.balanceRemaining)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -4,7 +4,7 @@ import { listOutstandingInstallments } from '@/server/collections'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 
 export const Route = createFileRoute('/collections')({
   component: CollectionsPage,
@@ -63,7 +63,7 @@ function CollectionsPage() {
                         <TableCell>{row.clientName}</TableCell>
                         <TableCell>{row.clientPhone}</TableCell>
                         <TableCell>{new Date(row.dueDate).toISOString().slice(0, 10)}</TableCell>
-                        <TableCell>${(row.totalDue - row.amountPaid).toFixed(2)}</TableCell>
+                        <TableCell>{formatCurrency(row.totalDue - row.amountPaid)}</TableCell>
                         <TableCell>
                           <Button asChild variant="link" size="sm">
                             <Link to="/loans/$loanId" params={{ loanId: String(row.loanId) }}>

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { formatCurrency } from '@/lib/utils'
 
 export const Route = createFileRoute('/loans/$loanId')({
   component: LoanDetailPage,
@@ -52,10 +53,10 @@ function LoanDetailPage() {
         Loan #{loan.id} — {loan.client.name}
       </h1>
       <p className="mb-1 text-sm text-muted-foreground">
-        Principal ${loan.principal.toFixed(2)} · Rate {loan.interestRate}% ({loan.interestType}) ·{' '}
+        Principal {formatCurrency(loan.principal)} · Rate {loan.interestRate}% ({loan.interestType}) ·{' '}
         {loan.termMonths} months · {loan.repaymentFrequency} · Status: {loan.status}
       </p>
-      <p className="mb-6 text-lg font-semibold">Remaining balance owed: ${totalOwed.toFixed(2)}</p>
+      <p className="mb-6 text-lg font-semibold">Remaining balance owed: {formatCurrency(totalOwed)}</p>
 
       <Card className="mb-6">
         <CardHeader>
@@ -134,10 +135,10 @@ function LoanDetailPage() {
             <TableRow key={inst.id}>
               <TableCell>{inst.installmentNumber}</TableCell>
               <TableCell>{new Date(inst.dueDate).toISOString().slice(0, 10)}</TableCell>
-              <TableCell>${inst.principalPortion.toFixed(2)}</TableCell>
-              <TableCell>${inst.interestPortion.toFixed(2)}</TableCell>
-              <TableCell>${inst.totalDue.toFixed(2)}</TableCell>
-              <TableCell>${inst.amountPaid.toFixed(2)}</TableCell>
+              <TableCell>{formatCurrency(inst.principalPortion)}</TableCell>
+              <TableCell>{formatCurrency(inst.interestPortion)}</TableCell>
+              <TableCell>{formatCurrency(inst.totalDue)}</TableCell>
+              <TableCell>{formatCurrency(inst.amountPaid)}</TableCell>
               <TableCell>{inst.status}</TableCell>
             </TableRow>
           ))}
@@ -163,7 +164,7 @@ function LoanDetailPage() {
           ) : (
             loan.payments.map((p) => (
               <TableRow key={p.id}>
-                <TableCell>${p.amount.toFixed(2)}</TableCell>
+                <TableCell>{formatCurrency(p.amount)}</TableCell>
                 <TableCell>{p.method}</TableCell>
                 <TableCell>{new Date(p.paidAt).toISOString().slice(0, 10)}</TableCell>
               </TableRow>
