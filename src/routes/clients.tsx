@@ -87,7 +87,7 @@ function ClientsPage() {
           e.stopPropagation()
           form.handleSubmit()
         }}
-        className="mb-6 flex flex-wrap items-end gap-4"
+        className="mb-6 grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2"
       >
         <form.Field name="name">
           {(field) => (
@@ -143,9 +143,11 @@ function ClientsPage() {
             </div>
           )}
         </form.Field>
-        <Button type="submit" disabled={createMutation.isPending}>
-          {createMutation.isPending ? 'Adding...' : 'Add Client'}
-        </Button>
+        <div className="sm:col-span-2">
+          <Button type="submit" disabled={createMutation.isPending}>
+            {createMutation.isPending ? 'Adding...' : 'Add Client'}
+          </Button>
+        </div>
       </form>
 
       {createMutation.isError && (

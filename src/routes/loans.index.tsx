@@ -114,7 +114,7 @@ function LoansPage() {
           e.stopPropagation()
           form.handleSubmit()
         }}
-        className="mb-4 flex flex-wrap items-end gap-4"
+        className="mb-4 grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2"
       >
         <form.Field name="clientId">
           {(field) => (
@@ -227,15 +227,17 @@ function LoansPage() {
             </div>
           )}
         </form.Field>
-        <Button type="button" variant="outline" onClick={handlePreview} disabled={isPreviewPending}>
-          {isPreviewPending ? 'Previewing...' : 'Preview'}
-        </Button>
-        <Button type="submit" disabled={activeClients.length === 0}>
-          Create Loan
-        </Button>
-        {activeClients.length === 0 && (
-          <span className="text-sm text-muted-foreground">Add an active client first</span>
-        )}
+        <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
+          <Button type="button" variant="outline" onClick={handlePreview} disabled={isPreviewPending}>
+            {isPreviewPending ? 'Previewing...' : 'Preview'}
+          </Button>
+          <Button type="submit" disabled={activeClients.length === 0}>
+            Create Loan
+          </Button>
+          {activeClients.length === 0 && (
+            <span className="text-sm text-muted-foreground">Add an active client first</span>
+          )}
+        </div>
       </form>
 
       {previewError && <p className="mb-4 text-sm text-destructive">{previewError}</p>}
