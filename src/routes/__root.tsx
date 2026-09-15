@@ -1,5 +1,6 @@
 import { createRootRouteWithContext, Outlet, Link, HeadContent, Scripts } from '@tanstack/react-router'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
+import { Users, HandCoins, Receipt } from 'lucide-react'
 import appCss from '../styles/app.css?url'
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -25,21 +26,24 @@ function RootComponent() {
             <nav className="flex gap-6 border-b border-border bg-[#f8f8f8] px-6 py-4 sm:w-56 sm:shrink-0 sm:flex-col sm:gap-2 sm:border-b-0 sm:border-r sm:px-4 sm:py-6">
               <Link
                 to="/clients"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-foreground data-[status=active]:font-semibold"
+                className="inline-flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-foreground data-[status=active]:font-semibold"
               >
-                Clients
+                <Users className="size-4" />
+                <span>Clients</span>
               </Link>
               <Link
                 to="/loans"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-foreground data-[status=active]:font-semibold"
+                className="inline-flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-foreground data-[status=active]:font-semibold"
               >
-                Loans
+                <HandCoins className="size-4" />
+                <span>Loans</span>
               </Link>
               <Link
                 to="/collections"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-foreground data-[status=active]:font-semibold"
+                className="inline-flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-foreground data-[status=active]:font-semibold"
               >
-                Collections
+                <Receipt className="size-4" />
+                <span>Collections</span>
               </Link>
             </nav>
             <main className="flex-1 p-6">
