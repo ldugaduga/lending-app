@@ -218,7 +218,7 @@ function ContributionPage() {
                 <TableCell>{formatCurrency(c.amount)}</TableCell>
                 <TableCell>{c.type === 'drawdown' ? 'Drawdown' : 'Deposit'}</TableCell>
                 <TableCell>
-                  {c.type === 'drawdown' && c.loanId ? (
+                  {c.loanId ? (
                     <Button asChild variant="link" size="sm">
                       <Link to="/loans/$loanId" params={{ loanId: String(c.loanId) }}>
                         View loan

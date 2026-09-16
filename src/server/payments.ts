@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { db } from '@/db'
-import { payments, installments, loans } from '@/db/schema'
+import { payments, installments, loans, trustFundContributions } from '@/db/schema'
 import { eq, and, asc, ne } from 'drizzle-orm'
 
 const recordPaymentSchema = z.object({
@@ -62,8 +62,27 @@ export const recordPayment = createServerFn({ method: 'POST' })
       .from(installments)
       .where(and(eq(installments.loanId, data.loanId), ne(installments.status, 'paid')))
 
-    if (stillOpen.length === 0) {
-      await db.update(loans).set({ status: 'paid_off' }).where(eq(loans.id, data.loanId))
+    const [loanBefore] = await db.select({ status: loans.status }).from(loans).where(eq(loans.id, data.loanId))
+
+    if (stillOpen.length === 0 && loanBefore.status !== 'paid_off') {
+      const [drawdown] = await db
+        .select()
+        .from(trustFundContributions)
+        .where(and(eq(trustFundContributions.loanId, data.loanId), eq(trustFundContributions.type, 'drawdown')))
+
+      db.transaction((tx) => {
+        tx.update(loans).set({ status: 'paid_off' }).where(eq(loans.id, data.loanId)).run()
+        if (drawdown) {
+          tx.insert(trustFundContributions)
+            .values({
+              clientId: drawdown.clientId,
+              amount: drawdown.amount,
+              type: 'deposit',
+              loanId: data.loanId,
+            })
+            .run()
+        }
+      })
     }
 
     return payment
