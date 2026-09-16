@@ -1,6 +1,6 @@
 import { createRootRouteWithContext, Outlet, Link, HeadContent, Scripts } from '@tanstack/react-router'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
-import { Users, HandCoins, Receipt } from 'lucide-react'
+import { Users, HandCoins, Receipt, PiggyBank } from 'lucide-react'
 import appCss from '../styles/app.css?url'
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -44,6 +44,13 @@ function RootComponent() {
               >
                 <Receipt className="size-4" />
                 <span>Collections</span>
+              </Link>
+              <Link
+                to="/contribution"
+                className="inline-flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[status=active]:text-foreground data-[status=active]:font-semibold"
+              >
+                <PiggyBank className="size-4" />
+                <span>Funds</span>
               </Link>
             </nav>
             <main className="flex-1 p-6">

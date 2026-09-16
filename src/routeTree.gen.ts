@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as CollectionsRouteImport } from './routes/collections'
+import { Route as ContributionRouteImport } from './routes/contribution'
 import { Route as LoansRouteImport } from './routes/loans'
 import { Route as LoansIndexRouteImport } from './routes/loans.index'
 import { Route as LoansLoanIdRouteImport } from './routes/loans.$loanId'
@@ -29,6 +30,11 @@ const ClientsRoute = ClientsRouteImport.update({
 const CollectionsRoute = CollectionsRouteImport.update({
   id: '/collections',
   path: '/collections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContributionRoute = ContributionRouteImport.update({
+  id: '/contribution',
+  path: '/contribution',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoansRoute = LoansRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/clients': typeof ClientsRoute
   '/collections': typeof CollectionsRoute
+  '/contribution': typeof ContributionRoute
   '/loans': typeof LoansRouteWithChildren
   '/loans/$loanId': typeof LoansLoanIdRoute
   '/loans/': typeof LoansIndexRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/clients': typeof ClientsRoute
   '/collections': typeof CollectionsRoute
+  '/contribution': typeof ContributionRoute
   '/loans/$loanId': typeof LoansLoanIdRoute
   '/loans': typeof LoansIndexRoute
 }
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/clients': typeof ClientsRoute
   '/collections': typeof CollectionsRoute
+  '/contribution': typeof ContributionRoute
   '/loans': typeof LoansRouteWithChildren
   '/loans/$loanId': typeof LoansLoanIdRoute
   '/loans/': typeof LoansIndexRoute
@@ -74,14 +83,27 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/clients' | '/collections' | '/loans' | '/loans/$loanId' | '/loans/'
+    | '/'
+    | '/clients'
+    | '/collections'
+    | '/contribution'
+    | '/loans'
+    | '/loans/$loanId'
+    | '/loans/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/clients' | '/collections' | '/loans/$loanId' | '/loans'
+  to:
+    | '/'
+    | '/clients'
+    | '/collections'
+    | '/contribution'
+    | '/loans/$loanId'
+    | '/loans'
   id:
     | '__root__'
     | '/'
     | '/clients'
     | '/collections'
+    | '/contribution'
     | '/loans'
     | '/loans/$loanId'
     | '/loans/'
@@ -91,6 +113,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ClientsRoute: typeof ClientsRoute
   CollectionsRoute: typeof CollectionsRoute
+  ContributionRoute: typeof ContributionRoute
   LoansRoute: typeof LoansRouteWithChildren
 }
 
@@ -115,6 +138,13 @@ declare module '@tanstack/react-router' {
       path: '/collections'
       fullPath: '/collections'
       preLoaderRoute: typeof CollectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contribution': {
+      id: '/contribution'
+      path: '/contribution'
+      fullPath: '/contribution'
+      preLoaderRoute: typeof ContributionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loans': {
@@ -157,6 +187,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClientsRoute: ClientsRoute,
   CollectionsRoute: CollectionsRoute,
+  ContributionRoute: ContributionRoute,
   LoansRoute: LoansRouteWithChildren,
 }
 export const routeTree = rootRouteImport
