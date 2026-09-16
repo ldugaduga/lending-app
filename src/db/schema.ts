@@ -52,8 +52,19 @@ export const payments = sqliteTable('payments', {
   paidAt: integer('paid_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
 
+// A member's trust-fund/capital build-up contribution. Independent of loans,
+// installments, and payments - a client-level log of deposits only.
+export const trustFundContributions = sqliteTable('trust_fund_contributions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  clientId: integer('client_id').notNull().references(() => clients.id),
+  amount: real('amount').notNull(),
+  method: text('method', { enum: ['cash', 'bank_transfer', 'card', 'other'] }).notNull().default('cash'),
+  contributedAt: integer('contributed_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
+
 export const clientsRelations = relations(clients, ({ many }) => ({
   loans: many(loans),
+  trustFundContributions: many(trustFundContributions),
 }))
 
 export const loansRelations = relations(loans, ({ one, many }) => ({
@@ -70,4 +81,8 @@ export const installmentsRelations = relations(installments, ({ one, many }) => 
 export const paymentsRelations = relations(payments, ({ one }) => ({
   loan: one(loans, { fields: [payments.loanId], references: [loans.id] }),
   installment: one(installments, { fields: [payments.installmentId], references: [installments.id] }),
+}))
+
+export const trustFundContributionsRelations = relations(trustFundContributions, ({ one }) => ({
+  client: one(clients, { fields: [trustFundContributions.clientId], references: [clients.id] }),
 }))
