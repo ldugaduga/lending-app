@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { db } from '@/db'
-import { loans, installments, payments } from '@/db/schema'
+import { loans, installments, payments, trustFundContributions } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { generateAmortizationSchedule, getLoanSummary } from '@/lib/loan-engine'
 
@@ -13,6 +13,7 @@ const createLoanSchema = z.object({
   termMonths: z.number().int().positive(),
   repaymentFrequency: z.enum(['daily', 'weekly', 'biweekly', 'monthly']).default('monthly'),
   startDate: z.string(), // YYYY-MM-DD
+  fundDrawdown: z.number().nonnegative().optional(),
 })
 
 export const listLoans = createServerFn({ method: 'GET' }).handler(async () => {
@@ -31,6 +32,7 @@ export const getLoan = createServerFn({ method: 'GET' })
         client: true,
         installments: { orderBy: (i, { asc }) => [asc(i.installmentNumber)] },
         payments: true,
+        trustFundContributions: true,
       },
     })
   })
@@ -62,36 +64,72 @@ export const createLoan = createServerFn({ method: 'POST' })
       data.startDate, data.repaymentFrequency,
     )
 
-    const [loan] = await db
-      .insert(loans)
-      .values({
-        clientId: data.clientId,
-        principal: data.principal,
-        interestRate: data.interestRate,
-        interestType: data.interestType,
-        termMonths: data.termMonths,
-        repaymentFrequency: data.repaymentFrequency,
-        startDate: new Date(data.startDate),
-        status: 'active',
-      })
-      .returning()
+    const fundDrawdown = data.fundDrawdown ?? 0
+    if (fundDrawdown > 0) {
+      if (fundDrawdown > data.principal) {
+        throw new Error('Trust fund drawdown cannot exceed the loan principal.')
+      }
+      const clientContributions = await db
+        .select({ amount: trustFundContributions.amount, type: trustFundContributions.type })
+        .from(trustFundContributions)
+        .where(eq(trustFundContributions.clientId, data.clientId))
+      const balance = clientContributions.reduce(
+        (sum, c) => sum + (c.type === 'drawdown' ? -c.amount : c.amount),
+        0,
+      )
+      if (fundDrawdown > balance) {
+        throw new Error('Trust fund balance is insufficient for this drawdown.')
+      }
+    }
 
-    await db.insert(installments).values(
-      schedule.map((row) => ({
-        loanId: loan.id,
-        installmentNumber: row.installmentNumber,
-        dueDate: new Date(row.dueDate),
-        principalPortion: row.principalPortion,
-        interestPortion: row.interestPortion,
-        totalDue: row.totalDue,
-      })),
-    )
+    const loan = db.transaction((tx) => {
+      const newLoan = tx
+        .insert(loans)
+        .values({
+          clientId: data.clientId,
+          principal: data.principal,
+          interestRate: data.interestRate,
+          interestType: data.interestType,
+          termMonths: data.termMonths,
+          repaymentFrequency: data.repaymentFrequency,
+          startDate: new Date(data.startDate),
+          status: 'active',
+        })
+        .returning()
+        .get()
+
+      tx.insert(installments)
+        .values(
+          schedule.map((row) => ({
+            loanId: newLoan.id,
+            installmentNumber: row.installmentNumber,
+            dueDate: new Date(row.dueDate),
+            principalPortion: row.principalPortion,
+            interestPortion: row.interestPortion,
+            totalDue: row.totalDue,
+          })),
+        )
+        .run()
+
+      if (fundDrawdown > 0) {
+        tx.insert(trustFundContributions)
+          .values({
+            clientId: data.clientId,
+            amount: fundDrawdown,
+            type: 'drawdown',
+            loanId: newLoan.id,
+          })
+          .run()
+      }
+
+      return newLoan
+    })
 
     return loan
   })
 
 export const updateLoan = createServerFn({ method: 'POST' })
-  .validator(createLoanSchema.omit({ clientId: true }).extend({ id: z.number() }))
+  .validator(createLoanSchema.omit({ clientId: true, fundDrawdown: true }).extend({ id: z.number() }))
   .handler(async ({ data }) => {
     const existingLoan = await db.select({ id: loans.id }).from(loans).where(eq(loans.id, data.id))
     if (existingLoan.length === 0) {

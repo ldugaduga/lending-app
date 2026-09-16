@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from '@tanstack/react-form'
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, computeTrustFundBalances } from '@/lib/utils'
 
 export const Route = createFileRoute('/contribution')({
   component: ContributionPage,
@@ -78,36 +78,23 @@ function ContributionPage() {
       {contributions.length > 0 && (
         <>
           <p className="mb-4 text-lg font-semibold">
-            Total trust fund holdings: {formatCurrency(contributions.reduce((sum, c) => sum + c.amount, 0))}
+            Total trust fund holdings: {formatCurrency(computeTrustFundBalances(contributions).reduce((sum, b) => sum + b.total, 0))}
           </p>
           <h3 className="mb-3 text-lg font-semibold">Balances by Client</h3>
           <Table className="mb-6">
             <TableHeader>
               <TableRow>
                 <TableHead>Client</TableHead>
-                <TableHead>Total contributed</TableHead>
+                <TableHead>Balance</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Array.from(
-                contributions.reduce((balances, c) => {
-                  const existing = balances.get(c.client.id)
-                  balances.set(c.client.id, {
-                    id: c.client.id,
-                    name: c.client.name,
-                    total: (existing?.total ?? 0) + c.amount,
-                  })
-                  return balances
-                }, new Map<number, { id: number; name: string; total: number }>()),
-              )
-                .map(([, balance]) => balance)
-                .sort((a, b) => b.total - a.total)
-                .map((balance) => (
-                  <TableRow key={balance.id}>
-                    <TableCell>{balance.name}</TableCell>
-                    <TableCell>{formatCurrency(balance.total)}</TableCell>
-                  </TableRow>
-                ))}
+              {computeTrustFundBalances(contributions).map((balance) => (
+                <TableRow key={balance.id}>
+                  <TableCell>{balance.name}</TableCell>
+                  <TableCell>{formatCurrency(balance.total)}</TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </>
@@ -199,14 +186,15 @@ function ContributionPage() {
           <TableRow>
             <TableHead>Client</TableHead>
             <TableHead>Amount</TableHead>
-            <TableHead>Method</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Method / Loan</TableHead>
             <TableHead>Date</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {contributions.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="text-center text-muted-foreground">
+              <TableCell colSpan={5} className="text-center text-muted-foreground">
                 No trust fund contributions yet.
               </TableCell>
             </TableRow>
@@ -215,7 +203,18 @@ function ContributionPage() {
               <TableRow key={c.id}>
                 <TableCell>{c.client.name}</TableCell>
                 <TableCell>{formatCurrency(c.amount)}</TableCell>
-                <TableCell>{c.method}</TableCell>
+                <TableCell>{c.type === 'drawdown' ? 'Drawdown' : 'Deposit'}</TableCell>
+                <TableCell>
+                  {c.type === 'drawdown' && c.loanId ? (
+                    <Button asChild variant="link" size="sm">
+                      <Link to="/loans/$loanId" params={{ loanId: String(c.loanId) }}>
+                        View loan
+                      </Link>
+                    </Button>
+                  ) : (
+                    c.method
+                  )}
+                </TableCell>
                 <TableCell>{new Date(c.contributedAt).toISOString().slice(0, 10)}</TableCell>
               </TableRow>
             ))

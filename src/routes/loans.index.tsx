@@ -6,6 +6,7 @@ import { useReactTable, getCoreRowModel, flexRender, createColumnHelper } from '
 import { CalendarIcon } from 'lucide-react'
 import { listLoans, createLoan, previewLoan, deleteLoan } from '@/server/loans'
 import { listClients } from '@/server/clients'
+import { listTrustFundContributions } from '@/server/trustFund'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,13 +15,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { formatCurrency, todayInManila, toDateInputValue } from '@/lib/utils'
+import { formatCurrency, todayInManila, toDateInputValue, computeTrustFundBalances } from '@/lib/utils'
 
 export const Route = createFileRoute('/loans/')({
   component: LoansPage,
   loader: async () => {
-    const [loans, clients] = await Promise.all([listLoans(), listClients()])
-    return { loans, clients }
+    const [loans, clients, contributions] = await Promise.all([
+      listLoans(),
+      listClients(),
+      listTrustFundContributions(),
+    ])
+    return { loans, clients, contributions }
   },
 })
 
@@ -28,7 +33,7 @@ type Loan = Awaited<ReturnType<typeof listLoans>>[number]
 const columnHelper = createColumnHelper<Loan>()
 
 function LoansPage() {
-  const { loans: initialLoans, clients } = Route.useLoaderData()
+  const { loans: initialLoans, clients, contributions: initialContributions } = Route.useLoaderData()
   const queryClient = useQueryClient()
   const [preview, setPreview] = useState<Awaited<ReturnType<typeof previewLoan>> | null>(null)
   const [previewError, setPreviewError] = useState<string | null>(null)
@@ -40,7 +45,14 @@ function LoansPage() {
     initialData: initialLoans,
   })
 
+  const { data: contributions } = useQuery({
+    queryKey: ['trustFundContributions'],
+    queryFn: () => listTrustFundContributions(),
+    initialData: initialContributions,
+  })
+
   const activeClients = clients.filter((c) => c.status === 'active')
+  const trustFundBalances = computeTrustFundBalances(contributions)
 
   const createMutation = useMutation({
     mutationFn: createLoan,
@@ -64,6 +76,7 @@ function LoansPage() {
       termMonths: 6,
       repaymentFrequency: 'monthly' as 'daily' | 'weekly' | 'biweekly' | 'monthly',
       startDate: todayInManila(),
+      fundDrawdown: 0,
     },
     onSubmit: async ({ value }) => {
       await createMutation.mutateAsync({ data: value })
@@ -160,6 +173,10 @@ function LoansPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <span className="text-sm text-muted-foreground">
+                Trust fund balance:{' '}
+                {formatCurrency(trustFundBalances.find((b) => b.id === field.state.value)?.total ?? 0)}
+              </span>
             </div>
           )}
         </form.Field>
@@ -261,6 +278,32 @@ function LoansPage() {
             </div>
           )}
         </form.Field>
+        <form.Subscribe selector={(state) => state.values.clientId}>
+          {(clientId) => {
+            const balance = trustFundBalances.find((b) => b.id === clientId)?.total ?? 0
+            return (
+              <form.Field name="fundDrawdown">
+                {(field) => (
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="loan-fund-drawdown">Fund from trust fund</Label>
+                    <Input
+                      id="loan-fund-drawdown"
+                      type="number"
+                      step="0.01"
+                      max={balance}
+                      placeholder="0"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(Number(e.target.value))}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      Up to {formatCurrency(balance)} available
+                    </span>
+                  </div>
+                )}
+              </form.Field>
+            )
+          }}
+        </form.Subscribe>
         <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
           <Button type="button" variant="outline" onClick={handlePreview} disabled={isPreviewPending}>
             {isPreviewPending ? 'Previewing...' : preview ? 'Hide Preview' : 'Preview'}

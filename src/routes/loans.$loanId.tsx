@@ -88,6 +88,7 @@ function LoanDetailPage() {
 
   const totalOwed = loan.installments.reduce((sum, i) => sum + (i.totalDue - i.amountPaid), 0)
   const canEdit = loan.payments.length === 0
+  const drawdown = loan.trustFundContributions.find((c) => c.type === 'drawdown')
 
   return (
     <div>
@@ -125,7 +126,14 @@ function LoanDetailPage() {
         Principal {formatCurrency(loan.principal)} · Rate {loan.interestRate}% ({loan.interestType}) ·{' '}
         {loan.termMonths} months · {loan.repaymentFrequency} · Status: {loan.status}
       </p>
-      <p className="mb-6 text-lg font-semibold">Remaining balance owed: {formatCurrency(totalOwed)}</p>
+      <p className={drawdown ? 'mb-1 text-lg font-semibold' : 'mb-6 text-lg font-semibold'}>
+        Remaining balance owed: {formatCurrency(totalOwed)}
+      </p>
+      {drawdown && (
+        <p className="mb-6 text-sm text-muted-foreground">
+          Funded from trust fund: {formatCurrency(drawdown.amount)}
+        </p>
+      )}
       {deleteMutation.isError && (
         <p className="mb-6 text-sm text-destructive">{deleteMutation.error.message}</p>
       )}

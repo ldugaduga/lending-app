@@ -27,3 +27,22 @@ export function toDateInputValue(date: Date): string {
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
+
+// Per-client trust fund balance: deposits add, drawdowns subtract. Sorted
+// highest balance first. Shared by the Funds page (all clients) and the
+// create-loan form (the single selected client).
+export function computeTrustFundBalances(
+  contributions: Array<{ amount: number; type: 'deposit' | 'drawdown'; client: { id: number; name: string } }>,
+): Array<{ id: number; name: string; total: number }> {
+  const balances = contributions.reduce((map, c) => {
+    const existing = map.get(c.client.id)
+    map.set(c.client.id, {
+      id: c.client.id,
+      name: c.client.name,
+      total: (existing?.total ?? 0) + (c.type === 'drawdown' ? -c.amount : c.amount),
+    })
+    return map
+  }, new Map<number, { id: number; name: string; total: number }>())
+
+  return Array.from(balances.values()).sort((a, b) => b.total - a.total)
+}
