@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from '@tanstack/react-form'
 import { listClients } from '@/server/clients'
-import { listTrustFundContributions, recordTrustFundContribution } from '@/server/trustFund'
+import { listTrustFundContributions, recordTrustFundContribution, distributeEarnings } from '@/server/trustFund'
 import { getTotalEarnings } from '@/server/loans'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -53,6 +53,16 @@ function ContributionPage() {
     },
   })
 
+  const distributeMutation = useMutation({
+    mutationFn: distributeEarnings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trustFundContributions'] })
+    },
+  })
+
+  const balances = computeTrustFundBalances(contributions)
+  const undistributedEarnings = totalEarnings - balances.reduce((sum, b) => sum + b.total - b.initial, 0)
+
   const form = useForm({
     defaultValues: {
       clientId: activeClients[0]?.id ?? 0,
@@ -72,6 +82,22 @@ function ContributionPage() {
           <Button
             variant="outline"
             size="sm"
+            disabled={undistributedEarnings <= 0 || distributeMutation.isPending}
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Distribute ${formatCurrency(undistributedEarnings)} in undistributed earnings equally among all active clients?`,
+                )
+              ) {
+                distributeMutation.mutate({})
+              }
+            }}
+          >
+            {distributeMutation.isPending ? 'Distributing...' : 'Distribute Earnings'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             disabled={activeClients.length === 0}
             onClick={() => {
               setIsAddingContribution((v) => !v)
@@ -87,24 +113,31 @@ function ContributionPage() {
       </div>
 
       <p className="mb-4 text-lg font-semibold">Total earnings: {formatCurrency(totalEarnings)}</p>
+      {distributeMutation.isError && (
+        <p className="mb-4 text-sm text-destructive">{distributeMutation.error.message}</p>
+      )}
 
       {contributions.length > 0 && (
         <>
           <p className="mb-4 text-lg font-semibold">
-            Total trust fund holdings: {formatCurrency(computeTrustFundBalances(contributions).reduce((sum, b) => sum + b.total, 0))}
+            Total trust fund holdings: {formatCurrency(balances.reduce((sum, b) => sum + b.current, 0))}
           </p>
           <h3 className="mb-3 text-lg font-semibold">Balances by Client</h3>
           <Table className="mb-6">
             <TableHeader>
               <TableRow>
                 <TableHead>Client</TableHead>
-                <TableHead>Balance</TableHead>
+                <TableHead>Initial Balance</TableHead>
+                <TableHead>Current Balance</TableHead>
+                <TableHead>Total Balance</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {computeTrustFundBalances(contributions).map((balance) => (
+              {balances.map((balance) => (
                 <TableRow key={balance.id}>
                   <TableCell>{balance.name}</TableCell>
+                  <TableCell>{formatCurrency(balance.initial)}</TableCell>
+                  <TableCell>{formatCurrency(balance.current)}</TableCell>
                   <TableCell>{formatCurrency(balance.total)}</TableCell>
                 </TableRow>
               ))}
@@ -216,7 +249,9 @@ function ContributionPage() {
               <TableRow key={c.id}>
                 <TableCell>{c.client.name}</TableCell>
                 <TableCell>{formatCurrency(c.amount)}</TableCell>
-                <TableCell>{c.type === 'drawdown' ? 'Drawdown' : 'Deposit'}</TableCell>
+                <TableCell>
+                  {c.type === 'drawdown' ? 'Drawdown' : c.type === 'dividend' ? 'Dividend' : 'Deposit'}
+                </TableCell>
                 <TableCell>
                   {c.loanId ? (
                     <Button asChild variant="link" size="sm">

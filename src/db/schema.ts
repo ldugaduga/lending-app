@@ -61,7 +61,7 @@ export const trustFundContributions = sqliteTable('trust_fund_contributions', {
   clientId: integer('client_id').notNull().references(() => clients.id),
   amount: real('amount').notNull(),
   method: text('method', { enum: ['cash', 'bank_transfer', 'card', 'other'] }).notNull().default('cash'),
-  type: text('type', { enum: ['deposit', 'drawdown'] }).notNull().default('deposit'),
+  type: text('type', { enum: ['deposit', 'drawdown', 'dividend'] }).notNull().default('deposit'),
   loanId: integer('loan_id').references(() => loans.id),
   contributedAt: integer('contributed_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })

@@ -95,7 +95,7 @@ function ClientsPage() {
     columnHelper.display({
       id: 'trustFundBalance',
       header: 'Trust Fund Balance',
-      cell: ({ row }) => formatCurrency(trustFundBalances.find((b) => b.id === row.original.id)?.total ?? 0),
+      cell: ({ row }) => formatCurrency(trustFundBalances.find((b) => b.id === row.original.id)?.current ?? 0),
     }),
     columnHelper.display({
       id: 'actions',
@@ -239,7 +239,7 @@ function ClientsPage() {
       )}
 
       <p className="mb-4 text-lg font-semibold">
-        Total trust fund holdings: {formatCurrency(trustFundBalances.reduce((sum, b) => sum + b.total, 0))}
+        Total trust fund holdings: {formatCurrency(trustFundBalances.reduce((sum, b) => sum + b.current, 0))}
       </p>
 
       <Table>

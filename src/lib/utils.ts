@@ -28,21 +28,38 @@ export function toDateInputValue(date: Date): string {
   return `${year}-${month}-${day}`
 }
 
-// Per-client trust fund balance: deposits add, drawdowns subtract. Sorted
-// highest balance first. Shared by the Funds page (all clients) and the
-// create-loan form (the single selected client).
+// Per-client trust fund balances. Sorted by current balance, highest first.
+// Shared by the Funds page (all clients) and the create-loan form (the single
+// selected client).
+//
+// - initial: sum of deposit-type amounts only (manual contributions and
+//   loan-drawdown returns) - what has ever flowed in as a deposit.
+// - current: today's spendable balance - deposits and dividends minus
+//   drawdowns.
+// - total: initial + this client's own distributed dividends, independent of
+//   any loan currently drawing down their fund.
 export function computeTrustFundBalances(
-  contributions: Array<{ amount: number; type: 'deposit' | 'drawdown'; client: { id: number; name: string } }>,
-): Array<{ id: number; name: string; total: number }> {
+  contributions: Array<{
+    amount: number
+    type: 'deposit' | 'drawdown' | 'dividend'
+    client: { id: number; name: string }
+  }>,
+): Array<{ id: number; name: string; initial: number; current: number; total: number }> {
+  type Accumulated = { id: number; name: string; initial: number; current: number; dividends: number }
+
   const balances = contributions.reduce((map, c) => {
     const existing = map.get(c.client.id)
     map.set(c.client.id, {
       id: c.client.id,
       name: c.client.name,
-      total: (existing?.total ?? 0) + (c.type === 'drawdown' ? -c.amount : c.amount),
+      initial: (existing?.initial ?? 0) + (c.type === 'deposit' ? c.amount : 0),
+      current: (existing?.current ?? 0) + (c.type === 'drawdown' ? -c.amount : c.amount),
+      dividends: (existing?.dividends ?? 0) + (c.type === 'dividend' ? c.amount : 0),
     })
     return map
-  }, new Map<number, { id: number; name: string; total: number }>())
+  }, new Map<number, Accumulated>())
 
-  return Array.from(balances.values()).sort((a, b) => b.total - a.total)
+  return Array.from(balances.values())
+    .map((b) => ({ id: b.id, name: b.name, initial: b.initial, current: b.current, total: b.initial + b.dividends }))
+    .sort((a, b) => b.current - a.current)
 }

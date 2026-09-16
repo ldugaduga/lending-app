@@ -175,7 +175,7 @@ function LoansPage() {
               </Select>
               <span className="text-sm text-muted-foreground">
                 Trust fund balance:{' '}
-                {formatCurrency(trustFundBalances.find((b) => b.id === field.state.value)?.total ?? 0)}
+                {formatCurrency(trustFundBalances.find((b) => b.id === field.state.value)?.current ?? 0)}
               </span>
             </div>
           )}
@@ -280,7 +280,7 @@ function LoansPage() {
         </form.Field>
         <form.Subscribe selector={(state) => state.values.clientId}>
           {(clientId) => {
-            const balance = trustFundBalances.find((b) => b.id === clientId)?.total ?? 0
+            const balance = trustFundBalances.find((b) => b.id === clientId)?.current ?? 0
             return (
               <form.Field name="fundDrawdown">
                 {(field) => (
