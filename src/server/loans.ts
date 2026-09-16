@@ -23,6 +23,14 @@ export const listLoans = createServerFn({ method: 'GET' }).handler(async () => {
   })
 })
 
+// Total interest across every installment ever generated, regardless of
+// payment status - the interest the loan book is worth in total, not just
+// what's been collected so far.
+export const getTotalEarnings = createServerFn({ method: 'GET' }).handler(async () => {
+  const rows = await db.select({ interestPortion: installments.interestPortion }).from(installments)
+  return rows.reduce((sum, r) => sum + r.interestPortion, 0)
+})
+
 export const getLoan = createServerFn({ method: 'GET' })
   .validator(z.object({ id: z.number() }))
   .handler(async ({ data }) => {

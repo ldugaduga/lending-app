@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from '@tanstack/react-form'
 import { listClients } from '@/server/clients'
 import { listTrustFundContributions, recordTrustFundContribution } from '@/server/trustFund'
+import { getTotalEarnings } from '@/server/loans'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,13 +16,17 @@ import { formatCurrency, computeTrustFundBalances } from '@/lib/utils'
 export const Route = createFileRoute('/contribution')({
   component: ContributionPage,
   loader: async () => {
-    const [clients, contributions] = await Promise.all([listClients(), listTrustFundContributions()])
-    return { clients, contributions }
+    const [clients, contributions, totalEarnings] = await Promise.all([
+      listClients(),
+      listTrustFundContributions(),
+      getTotalEarnings(),
+    ])
+    return { clients, contributions, totalEarnings }
   },
 })
 
 function ContributionPage() {
-  const { clients, contributions: initialContributions } = Route.useLoaderData()
+  const { clients, contributions: initialContributions, totalEarnings: initialTotalEarnings } = Route.useLoaderData()
   const queryClient = useQueryClient()
   const [isAddingContribution, setIsAddingContribution] = useState(false)
 
@@ -29,6 +34,12 @@ function ContributionPage() {
     queryKey: ['trustFundContributions'],
     queryFn: () => listTrustFundContributions(),
     initialData: initialContributions,
+  })
+
+  const { data: totalEarnings } = useQuery({
+    queryKey: ['totalEarnings'],
+    queryFn: () => getTotalEarnings(),
+    initialData: initialTotalEarnings,
   })
 
   const activeClients = clients.filter((c) => c.status === 'active')
@@ -74,6 +85,8 @@ function ContributionPage() {
           )}
         </div>
       </div>
+
+      <p className="mb-4 text-lg font-semibold">Total earnings: {formatCurrency(totalEarnings)}</p>
 
       {contributions.length > 0 && (
         <>

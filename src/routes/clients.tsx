@@ -4,21 +4,26 @@ import { useForm } from '@tanstack/react-form'
 import { useReactTable, getCoreRowModel, flexRender, createColumnHelper } from '@tanstack/react-table'
 import { useState } from 'react'
 import { listClients, createClient, updateClient, updateClientStatus, deleteClient } from '@/server/clients'
+import { listTrustFundContributions } from '@/server/trustFund'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { formatCurrency, computeTrustFundBalances } from '@/lib/utils'
 
 export const Route = createFileRoute('/clients')({
   component: ClientsPage,
-  loader: async () => listClients(),
+  loader: async () => {
+    const [clients, contributions] = await Promise.all([listClients(), listTrustFundContributions()])
+    return { clients, contributions }
+  },
 })
 
 type Client = Awaited<ReturnType<typeof listClients>>[number]
 const columnHelper = createColumnHelper<Client>()
 
 function ClientsPage() {
-  const initialClients = Route.useLoaderData()
+  const { clients: initialClients, contributions: initialContributions } = Route.useLoaderData()
   const queryClient = useQueryClient()
   const [editingClientId, setEditingClientId] = useState<number | null>(null)
 
@@ -27,6 +32,14 @@ function ClientsPage() {
     queryFn: () => listClients(),
     initialData: initialClients,
   })
+
+  const { data: contributions } = useQuery({
+    queryKey: ['trustFundContributions'],
+    queryFn: () => listTrustFundContributions(),
+    initialData: initialContributions,
+  })
+
+  const trustFundBalances = computeTrustFundBalances(contributions)
 
   const createMutation = useMutation({
     mutationFn: createClient,
@@ -79,6 +92,11 @@ function ClientsPage() {
     columnHelper.accessor('phone', { header: 'Phone' }),
     columnHelper.accessor('email', { header: 'Email' }),
     columnHelper.accessor('status', { header: 'Status' }),
+    columnHelper.display({
+      id: 'trustFundBalance',
+      header: 'Trust Fund Balance',
+      cell: ({ row }) => formatCurrency(trustFundBalances.find((b) => b.id === row.original.id)?.total ?? 0),
+    }),
     columnHelper.display({
       id: 'actions',
       header: 'Actions',
@@ -219,6 +237,10 @@ function ClientsPage() {
       {deleteMutation.isError && (
         <p className="mb-4 text-sm text-destructive">{deleteMutation.error.message}</p>
       )}
+
+      <p className="mb-4 text-lg font-semibold">
+        Total trust fund holdings: {formatCurrency(trustFundBalances.reduce((sum, b) => sum + b.total, 0))}
+      </p>
 
       <Table>
         <TableHeader>
